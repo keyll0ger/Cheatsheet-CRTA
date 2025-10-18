@@ -385,7 +385,7 @@ Find-LocalAdminAccess -Verbose
   - https://attack.mitre.org/techniques/T1068
   - https://attack.mitre.org/techniques/T1055
   - https://attack.mitre.org/techniques/T1053
-  - https.://attack.mitre.org/techniques/T1078
+  - https://attack.mitre.org/techniques/T1078
 
 - PowerUP can be used to escalate locally in a Windows environment.
 
